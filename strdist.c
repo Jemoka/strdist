@@ -68,7 +68,7 @@ handle_iteration(Node *current, char *ref) {
     // then we have literally nothing to do.
     // Set the bitmask as 1111 (F) (all undoable)
     // then just move on
-    if (strcmp(current->str,ref) == 0) {
+    if (strcmp(current->str,ref) == 0 && current->indx>strlen(ref)) {
         // Create empty action
         Actions result;
         // Set the mask to 0xF (1111) (ON ON ON ON)
@@ -165,7 +165,6 @@ destruct(Actions *action) {
 // This function is recursive
 void
 do_trace(Node *node, short lvl, char *tgt, unsigned short *cache) {
-    /* printf("'%s' indx=%d; %d; %d\n", node->str, node->indx, hash_node(node), lvl); */
     // Write into cache table
     // Hash the current node
     unsigned short hash = hash_node(node);
@@ -189,33 +188,25 @@ do_trace(Node *node, short lvl, char *tgt, unsigned short *cache) {
     // If we can skip, calculate results of skip
     if (!(next_actions.impossiblemask & UNSKIPPABLE)) {
         Node next = next_actions.skip;
-        /* printf("<skip>\n"); */
         do_trace(&next, lvl, tgt, cache);
-        /* printf("</skip>\n"); */
     }
 
     // If we can append, calculate results of append
     if (!(next_actions.impossiblemask & UNAPPENDABLE)) {
         Node next = next_actions.append;
-        printf("<append>\n");
         do_trace(&next, lvl+1, tgt, cache);
-        printf("</append>\n");
     }
 
     // If we can ignore, calculate results of ignore
     if (!(next_actions.impossiblemask & UNIGNORABLE)) {
         Node next = next_actions.ignore;
-        printf("<ignore>\n");
         do_trace(&next, lvl+1, tgt, cache); // ignoring does not change level
-        printf("</ignore>\n");
     }
 
     // If we can replace, calculate results of replace
     if (!(next_actions.impossiblemask & UNREPLACEABLE)) {
         Node next = next_actions.replace;
-        printf("<replace>\n");
         do_trace(&next, lvl+1, tgt, cache); 
-        printf("</replace>\n");
     }
 
     // Free the next actions
@@ -239,36 +230,16 @@ strdist(char *src, char *tgt) {
     // Declare the destination node, hash it
     Node destination_node = { tgt, strlen(tgt) };
     long hash = hash_node(&destination_node);
-    printf("%d %d\n", hash, strlen(tgt));
 
-    /* for (int i=0; i<USHRT_MAX; i++) */
-    /*     if (cache[i] < 65535) */
-    /*         printf("cache[%d] = %d\n", i, cache[i]); */
-
-    // And finally, figure out the DP'd minimum
-    // edit distance
     return cache[hash];
 }
 
-// Lookup solution
-
-
 int main()
 {
-    // Allocate cache array on stack 
-    printf("Distance: %d\n", strdist("what", "what1"));
-    /* Node test = {"hewo", 2}; */
-    /* Actions next = handle_iteration(&test, "hello"); */
-    /* printf("'%s'\n", next.skip.str); */
+    char *src = "hewo";
+    char *dest = "hewho";
 
-    /* destruct(&next); */
-
-
-    /* printf("%s; %ld\n", next.append.str, next.skip.indx); */
-    /* printf("%s; %ld\n", next.ignore.str, next.skip.indx); */
-    /* printf("%s; %ld\n", next.replace.str, next.skip.indx); */
-
-    /* destruct(&next);     */
+    printf("Distance: %d\n", strdist(src, dest));
     return 0;
 }
 

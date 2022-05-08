@@ -1,0 +1,46 @@
+* strdist
+A dynamic-programming implementation of string distancing, writing in C99 as a part of completing a project for CS223.
+
+** Building and Running
+This is a CMake project; build it how you would any others.
+
+Generate the spec via:
+
+#+begin_src bash
+cmake .
+#+end_src
+
+Then, execute =make= to compile the binary.
+
+** Implementation Details
+There is nothing too special about this specific implementation of string distancing; in lieu of a traditional "table-based" bottom up implementation, I elected to use a graph-based solution where nodes are uniquely hashed and stored in a hash table.
+
+The string hashing algorithm does not grantee collision-free (in fact, it is taken =mod USHORT_MAX= to save space), but it does the job for a toy task. The hash table stores structs of signature:
+
+#+begin_src c
+typedef struct {
+    char* str;
+    size_t indx;
+} Node;
+#+end_src
+
+which contains the current working string and the index of the current focus pointer. 
+
+At each step, =handle_iteration= generates an =Action= ticket of type 
+
+#+begin_src c
+typedef struct {
+    Node skip;
+    Node append;
+    Node replace;
+    Node ignore;
+
+    unsigned char impossiblemask : 4;
+} Actions;
+#+end_src
+
+which contains the four next possible actions and a 4-bitfield limit =char= bitmask. This is a 4-bit boolean controlling whether or not each of the next actions are possible.
+
+At each step, the =do_trace= function calls =handle_iteration=, which generates the next =Actions= with four =Nodes=. =do_trace= then look up the result on the cached table---returning if no more optimal solutions have been found, and continuing if not.
+
+The code is written in old-style C, but I sometime slip back into "modern usage" (such as indexing an array by =[indexing]= and not =pointer + N= style, etc.) However, this should generally not affect readability.

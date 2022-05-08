@@ -122,11 +122,11 @@ handle_iteration(Node *current, char *ref) {
 
     //// Ignoring ////
     // Create the new string
-    char *tmp_ignore = malloc(sizeof(char)*original_length)-1;
+    char *tmp_ignore = malloc(sizeof(char)*original_length);
     // Copy the first half (up to, not including, the current index)
-    strlcpy(tmp_ignore, current->str, current->indx+1);
+    strlcpy(tmp_ignore, current->str, (current->indx)+1);
     // Copy the second half, not including the current index
-    strlcpy(tmp_ignore, (current->str)+(current->indx)+1, original_length-(current->indx));
+    strlcpy(tmp_ignore+(current->indx), (current->str)+(current->indx)+1, original_length-(current->indx));
     // And create the ignore node and don't move index ahead
     Node ignore = { tmp_ignore, current->indx };
     // Checking of the current character is correct

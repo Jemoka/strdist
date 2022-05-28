@@ -129,7 +129,7 @@ handle_iteration(Node *current, char *ref) {
     Node replace = { tmp_replace, current->indx + 1};
     // Check replace status; if replacing does nothing
     // then its considered unreplaceable
-    if ((replace.str)[replace.indx-1] == ref[replace.indx-1] || replace.indx >= original_length)
+    if (replace.indx > original_length)
         // Set unskippable mask
         mask |= UNREPLACEABLE;
 
@@ -142,9 +142,8 @@ handle_iteration(Node *current, char *ref) {
     strlcpy(tmp_ignore+(current->indx), (current->str)+(current->indx)+1, original_length-(current->indx));
     // And create the ignore node and don't move index ahead
     Node ignore = { tmp_ignore, current->indx };
-    // Checking of the current character is correct
-    // Otherwise its not ignorable
-    if ((ignore.str)[ignore.indx] != ref[ignore.indx] || ignore.indx >= original_length)
+    // Checking if ignore breaks length
+    if (ignore.indx >= original_length)
         // Set unskippable mask
         mask |= UNIGNORABLE;
 
@@ -170,13 +169,10 @@ do_trace(Node *node, short lvl, char *tgt, unsigned short *cache) {
     unsigned short hash = hash_node(node);
     // If we have not seen before, write lvl. If not
     // write the minimum of what we have and lvl. 
-    if (cache[hash] == USHRT_MAX)
-           cache[hash] = lvl;
-    else {
-        cache[hash] = MIN(cache[hash], lvl);
-        // return because we have already gotten here
-        return;
-    }
+    if (cache[hash] == USHRT_MAX) 
+        cache[hash] = lvl;
+    else if (cache[hash] < lvl) // return because we have already gotten here 
+        return;                 // with a better solution
 
     // Get next actions
     Actions next_actions = handle_iteration(node, tgt);
@@ -188,7 +184,19 @@ do_trace(Node *node, short lvl, char *tgt, unsigned short *cache) {
     // If we can skip, calculate results of skip
     if (!(next_actions.impossiblemask & UNSKIPPABLE)) {
         Node next = next_actions.skip;
-        do_trace(&next, lvl, tgt, cache);
+        do_trace(&next, lvl, tgt, cache); // skipping does not change level
+    }
+
+    // If we can replace, calculate results of replace
+    if (!(next_actions.impossiblemask & UNREPLACEABLE)) {
+        Node next = next_actions.replace;
+        do_trace(&next, lvl+1, tgt, cache); 
+    }
+
+    // If we can ignore, calculate results of ignore
+    if (!(next_actions.impossiblemask & UNIGNORABLE)) {
+        Node next = next_actions.ignore;
+        do_trace(&next, lvl+1, tgt, cache);
     }
 
     // If we can append, calculate results of append
@@ -197,17 +205,8 @@ do_trace(Node *node, short lvl, char *tgt, unsigned short *cache) {
         do_trace(&next, lvl+1, tgt, cache);
     }
 
-    // If we can ignore, calculate results of ignore
-    if (!(next_actions.impossiblemask & UNIGNORABLE)) {
-        Node next = next_actions.ignore;
-        do_trace(&next, lvl+1, tgt, cache); // ignoring does not change level
-    }
-
-    // If we can replace, calculate results of replace
-    if (!(next_actions.impossiblemask & UNREPLACEABLE)) {
-        Node next = next_actions.replace;
-        do_trace(&next, lvl+1, tgt, cache); 
-    }
+    // Set the cache as needed
+    cache[hash] = MIN(cache[hash], lvl);
 
     // Free the next actions
     destruct(&next_actions);
@@ -236,8 +235,8 @@ strdist(char *src, char *tgt) {
 
 int main()
 {
-    char *src = "hewo";
-    char *dest = "hewho";
+    char *src = "what";
+    char *dest = "awhere";
 
     printf("Distance: %d\n", strdist(src, dest));
     return 0;
